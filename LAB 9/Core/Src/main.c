@@ -161,7 +161,7 @@ int main(void)
 		{
 #ifdef UARTDEBUG
 			char temp[32];
-			sprintf(temp, "Recived [%d]\r\n", inputChar);
+			sprintf(temp, "Received [%d]\r\n", inputChar);
 			UARTTxWrite(&UART2, (uint8_t*) temp, strlen(temp));
 #else
 			DynamixelProtocal2(MainMemory, 1, inputChar, &UART2);
@@ -545,11 +545,13 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
 				temp[4] = MotorID;
 				temp[5] = (numberOfDataToRead + 4) & 0xff ; // +inst+err+crc1+crc2
 				temp[6] = ((numberOfDataToRead + 4)>>8) & 0xff ;
+
 				uint16_t crc_calc = update_crc(0, temp, 9);
 				crc_calc = update_crc(crc_calc ,&(Memory[startAddr]),numberOfDataToRead);
 				uint8_t crctemp[2];
 				crctemp[0] = crc_calc&0xff;
 				crctemp[1] = (crc_calc>>8)&0xff;
+
 				UARTTxWrite(uart, temp,9);
 				UARTTxWrite(uart, &(Memory[startAddr]),numberOfDataToRead);
 				UARTTxWrite(uart, crctemp,2);
@@ -558,6 +560,23 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
 			case 0x03://WRITE
 			{
 				//LAB
+				uint16_t startAddr = (parameter[0]&0xFF)|(parameter[1]<<8 &0xFF);
+				for (uint8_t i = 0; i < datalen - 5; i++)
+				{
+					Memory[startAddr+i] = parameter[i+2];
+				}
+
+				uint8_t temp[] = {0xff,0xff,0xfd,0x00,0x00,0x04,0x00,0x55,0x00};
+				temp[4] = MotorID;
+
+				uint16_t crc_calc = update_crc(0, temp, 9);
+				uint8_t crctemp[2];
+				crctemp[0] = crc_calc&0xff;
+				crctemp[1] = (crc_calc>>8)&0xff;
+
+				UARTTxWrite(uart, temp,9);
+				UARTTxWrite(uart, crctemp,2);
+				break;
 			}
 			default: //Unknown Inst
 			{
