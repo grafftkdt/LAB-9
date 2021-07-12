@@ -37,11 +37,11 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  16 .debug_macro  00015986  00000000  00000000  0002b050  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00007fee  00000000  00000000  000409d6  2**0
+ 17 .debug_line   00007ff0  00000000  00000000  000409d6  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    00085e27  00000000  00000000  000489c4  2**0
+ 18 .debug_str    00085e27  00000000  00000000  000489c6  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  000ce7eb  2**0
+ 19 .comment      00000053  00000000  00000000  000ce7ed  2**0
                   CONTENTS, READONLY
  20 .debug_frame  00001df4  00000000  00000000  000ce840  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -1739,20 +1739,21 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
  8000d5a:	f7ff fde3 	bl	8000924 <UARTTxWrite>
 				break;
  8000d5e:	e09f      	b.n	8000ea0 <DynamixelProtocal2+0x4ec>
-			}
-			case 0x03://WRITE
-			{
-				//LAB
-				uint16_t startAddr = (parameter[0]&0xFF)|(parameter[1]<<8 &0xFF);
+				//MainMemory[117] > 0x02
+				//MainMemory[118] > 0x00
+				//MainMemory[119] > 0x00
+
+				//Write Instruction Packet
+				uint16_t startAddr = (parameter[0]&0xFF)|(parameter[1]<<8 &0xFF);	//write at StartAddress >> find StartAddress
  8000d60:	4b56      	ldr	r3, [pc, #344]	; (8000ebc <DynamixelProtocal2+0x508>)
  8000d62:	781b      	ldrb	r3, [r3, #0]
  8000d64:	f8a7 3060 	strh.w	r3, [r7, #96]	; 0x60
-				for (uint8_t i = 0; i < datalen - 5; i++)
+				for (uint8_t i = 0; i < datalen - 5; i++)							//parameter = Len - 5
  8000d68:	2300      	movs	r3, #0
  8000d6a:	f887 3067 	strb.w	r3, [r7, #103]	; 0x67
  8000d6e:	e012      	b.n	8000d96 <DynamixelProtocal2+0x3e2>
 				{
-					Memory[startAddr+i] = parameter[i+2];
+					Memory[startAddr+i] = parameter[i+2];							//replace data
  8000d70:	f897 3067 	ldrb.w	r3, [r7, #103]	; 0x67
  8000d74:	1c9a      	adds	r2, r3, #2
  8000d76:	f8b7 1060 	ldrh.w	r1, [r7, #96]	; 0x60
@@ -1764,7 +1765,7 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
  8000d86:	494d      	ldr	r1, [pc, #308]	; (8000ebc <DynamixelProtocal2+0x508>)
  8000d88:	5c8a      	ldrb	r2, [r1, r2]
  8000d8a:	701a      	strb	r2, [r3, #0]
-				for (uint8_t i = 0; i < datalen - 5; i++)
+				for (uint8_t i = 0; i < datalen - 5; i++)							//parameter = Len - 5
  8000d8c:	f897 3067 	ldrb.w	r3, [r7, #103]	; 0x67
  8000d90:	3301      	adds	r3, #1
  8000d92:	f887 3067 	strb.w	r3, [r7, #103]	; 0x67
@@ -1776,7 +1777,8 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
  8000da2:	dbe5      	blt.n	8000d70 <DynamixelProtocal2+0x3bc>
 				}
 
-				uint8_t temp[] = {0xff,0xff,0xfd,0x00,0x00,0x04,0x00,0x55,0x00};
+				//Status Packet
+				uint8_t temp[] = {0xff,0xff,0xfd,0x00,0x00,0x04,0x00,0x55,0x00};	// Header >> Error n=9
  8000da4:	4a48      	ldr	r2, [pc, #288]	; (8000ec8 <DynamixelProtocal2+0x514>)
  8000da6:	f107 032c 	add.w	r3, r7, #44	; 0x2c
  8000daa:	ca07      	ldmia	r2, {r0, r1, r2}
@@ -1786,6 +1788,7 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
  8000db0:	7afb      	ldrb	r3, [r7, #11]
  8000db2:	f887 3030 	strb.w	r3, [r7, #48]	; 0x30
 
+				//CRC
 				uint16_t crc_calc = update_crc(0, temp, 9);
  8000db6:	f107 032c 	add.w	r3, r7, #44	; 0x2c
  8000dba:	2209      	movs	r2, #9
@@ -1806,6 +1809,7 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
  8000ddc:	b2db      	uxtb	r3, r3
  8000dde:	f887 3029 	strb.w	r3, [r7, #41]	; 0x29
 
+				//Send UART
 				UARTTxWrite(uart, temp,9);
  8000de2:	f107 032c 	add.w	r3, r7, #44	; 0x2c
  8000de6:	2209      	movs	r2, #9

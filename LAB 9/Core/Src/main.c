@@ -560,20 +560,32 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
 			case 0x03://WRITE
 			{
 				//LAB
-				uint16_t startAddr = (parameter[0]&0xFF)|(parameter[1]<<8 &0xFF);
-				for (uint8_t i = 0; i < datalen - 5; i++)
+
+				//Write FF FF FD 00 01 09 00 03 74 00 00 02 00 00 CA 89 >> 0x74 = 116
+				//Send FF FF FD 00 01 04 00 55 01 A1 0C
+				//MainMemory[116] > 0x00
+				//MainMemory[117] > 0x02
+				//MainMemory[118] > 0x00
+				//MainMemory[119] > 0x00
+
+				//Write Instruction Packet
+				uint16_t startAddr = (parameter[0]&0xFF)|(parameter[1]<<8 &0xFF);	//write at StartAddress >> find StartAddress
+				for (uint8_t i = 0; i < datalen - 5; i++)							//parameter = Len - 5
 				{
-					Memory[startAddr+i] = parameter[i+2];
+					Memory[startAddr+i] = parameter[i+2];							//replace data
 				}
 
-				uint8_t temp[] = {0xff,0xff,0xfd,0x00,0x00,0x04,0x00,0x55,0x00};
+				//Status Packet
+				uint8_t temp[] = {0xff,0xff,0xfd,0x00,0x00,0x04,0x00,0x55,0x00};	// Header >> Error n=9
 				temp[4] = MotorID;
 
+				//CRC
 				uint16_t crc_calc = update_crc(0, temp, 9);
 				uint8_t crctemp[2];
 				crctemp[0] = crc_calc&0xff;
 				crctemp[1] = (crc_calc>>8)&0xff;
 
+				//Send UART
 				UARTTxWrite(uart, temp,9);
 				UARTTxWrite(uart, crctemp,2);
 				break;
