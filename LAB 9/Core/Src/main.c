@@ -582,8 +582,9 @@ void DynamixelProtocal2(uint8_t *Memory, uint8_t MotorID, int16_t dataIn,
 				//CRC
 				uint16_t crc_calc = update_crc(0, temp, 9);
 				uint8_t crctemp[2];
-				crctemp[0] = crc_calc&0xff;
-				crctemp[1] = (crc_calc>>8)&0xff;
+				crctemp[0] = crc_calc&0xff;				//0xff >> 1 byte so input 16 bits >> &&0xff >> output 8 bits
+				crctemp[1] = (crc_calc>>8)&0xff;		//เราสามารถใช้การคูณหรือหารด้วย 2^n เมื่อ n = จำนวนที่เราอบาก shift
+														//ex. กรณีนี้ แทนที่เราจะใช้ >>8 เราก็ใช้ *2^8 แทนได้
 
 				//Send UART
 				UARTTxWrite(uart, temp,9);
